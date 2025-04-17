@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Hz Changer</string>
+    <string name="fixar_taxa">Fixar Taxa</string>
+    <string name="_30_hz">30 Hz</string>
+    <string name="_60_hz">60 Hz</string>
+    <string name="_90_hz">90 Hz</string>
+    <string name="_120_hz">120 Hz</string>
+    <string name="verificando_permiss_es">Verificando permissões...</string>
+    <string name="status_60_hz_selecionado">Status: 60 Hz selecionado</string>
+</resources>
