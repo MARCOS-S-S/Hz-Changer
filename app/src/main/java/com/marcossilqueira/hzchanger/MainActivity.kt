@@ -33,6 +33,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var button90Hz: Button
     private lateinit var button120Hz: Button
     private lateinit var currentRefreshRateTextView: TextView
+    private var isFixedHz: Boolean = false
+    private var selectedHz: Int = 60 // valor padrão inicial
 
     // Listener para o resultado da permissão Shizuku
     private val requestPermissionLauncher =
@@ -77,21 +79,6 @@ class MainActivity : AppCompatActivity() {
         val refreshRate = display?.refreshRate ?: 0f
         currentRefreshRateTextView.text = "Taxa atual: ${refreshRate.toInt()} Hz"
     }
-    private fun setRefreshRate(hz: Int) {
-        val command = "settings put system peak_refresh_rate $hz.0; settings put system min_refresh_rate $hz.0"
-        try {
-            if (isDeviceRooted()) {
-                val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-                process.waitFor()
-                updateStatus("Taxa de atualização definida para $hz Hz (via root)")
-            } else {
-                updateStatus("Sem permissão para alterar a taxa de atualização.")
-            }
-        } catch (e: Exception) {
-            updateStatus("Erro ao definir taxa: ${e.message}")
-        }
-        updateCurrentRefreshRate()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,10 +96,27 @@ class MainActivity : AppCompatActivity() {
         currentRefreshRateTextView = findViewById(R.id.text_view_current_refresh_rate)
         updateCurrentRefreshRate()
 
-        button30Hz.setOnClickListener { setRefreshRate(30) }
-        button60Hz.setOnClickListener { setRefreshRate(60) }
-        button90Hz.setOnClickListener { setRefreshRate(90) }
-        button120Hz.setOnClickListener { setRefreshRate(120) }
+        button30Hz.setOnClickListener {
+            selectedHz = 30
+            setRefreshRate(selectedHz)
+        }
+        button60Hz.setOnClickListener {
+            selectedHz = 60
+            setRefreshRate(selectedHz)
+        }
+        button90Hz.setOnClickListener {
+            selectedHz = 90
+            setRefreshRate(selectedHz)
+        }
+        button120Hz.setOnClickListener {
+            selectedHz = 120
+            setRefreshRate(selectedHz)
+        }
+
+        switchFixedHz.setOnCheckedChangeListener { _, isChecked ->
+            isFixedHz = isChecked
+            setRefreshRate(selectedHz) // Aplica imediatamente a nova configuração
+        }
 
         // Inicialmente desabilitar botões até checar permissão
         enableUiComponents(false)
@@ -143,6 +147,35 @@ class MainActivity : AppCompatActivity() {
         // button60Hz.setOnClickListener { ... }
         // ...
         // switchFixedHz.setOnCheckedChangeListener { _, isChecked -> ... }
+    }
+    private fun setRefreshRate(hz: Int) {
+        val commands = if (isFixedHz) {
+            // Fixar: define min e peak para o mesmo valor
+            arrayOf(
+                "settings put system peak_refresh_rate $hz.0",
+                "settings put system min_refresh_rate $hz.0"
+            )
+        } else {
+            // Não fixar: define apenas peak, min volta para 60
+            arrayOf(
+                "settings put system peak_refresh_rate $hz.0",
+                "settings put system min_refresh_rate 60.0"
+            )
+        }
+        try {
+            if (isDeviceRooted()) {
+                for (cmd in commands) {
+                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd))
+                    process.waitFor()
+                }
+                updateStatus("Taxa de atualização definida para $hz Hz" + if (isFixedHz) " (fixa)" else "")
+            } else {
+                updateStatus("Sem permissão para alterar a taxa de atualização.")
+            }
+        } catch (e: Exception) {
+            updateStatus("Erro ao definir taxa: ${e.message}")
+        }
+        updateCurrentRefreshRate()
     }
 
     override fun onDestroy() {
