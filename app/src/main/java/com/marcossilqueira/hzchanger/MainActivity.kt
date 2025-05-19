@@ -32,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var button60Hz: Button
     private lateinit var button90Hz: Button
     private lateinit var button120Hz: Button
+    private lateinit var currentRefreshRateTextView: TextView
 
     // Listener para o resultado da permissão Shizuku
     private val requestPermissionLauncher =
@@ -66,7 +67,31 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
+    private fun updateCurrentRefreshRate() {
+        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            display
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay
+        }
+        val refreshRate = display?.refreshRate ?: 0f
+        currentRefreshRateTextView.text = "Taxa atual: ${refreshRate.toInt()} Hz"
+    }
+    private fun setRefreshRate(hz: Int) {
+        val command = "settings put system peak_refresh_rate $hz.0; settings put system min_refresh_rate $hz.0"
+        try {
+            if (isDeviceRooted()) {
+                val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+                process.waitFor()
+                updateStatus("Taxa de atualização definida para $hz Hz (via root)")
+            } else {
+                updateStatus("Sem permissão para alterar a taxa de atualização.")
+            }
+        } catch (e: Exception) {
+            updateStatus("Erro ao definir taxa: ${e.message}")
+        }
+        updateCurrentRefreshRate()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +106,13 @@ class MainActivity : AppCompatActivity() {
         button60Hz = findViewById(R.id.button_60hz)
         button90Hz = findViewById(R.id.button_90hz)
         button120Hz = findViewById(R.id.button_120hz)
+        currentRefreshRateTextView = findViewById(R.id.text_view_current_refresh_rate)
+        updateCurrentRefreshRate()
+
+        button30Hz.setOnClickListener { setRefreshRate(30) }
+        button60Hz.setOnClickListener { setRefreshRate(60) }
+        button90Hz.setOnClickListener { setRefreshRate(90) }
+        button120Hz.setOnClickListener { setRefreshRate(120) }
 
         // Inicialmente desabilitar botões até checar permissão
         enableUiComponents(false)
