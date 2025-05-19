@@ -1,35 +1,3 @@
-//package com.marcossilqueira.hzchanger
-//
-//import android.content.pm.PackageManager
-//import android.os.Bundle
-//import android.widget.Button
-//import android.widget.TextView
-//import androidx.activity.enableEdgeToEdge
-//import androidx.activity.result.contract.ActivityResultContracts
-//import androidx.appcompat.app.AppCompatActivity
-//import androidx.core.content.ContextCompat
-//import androidx.core.view.ViewCompat
-//import androidx.core.view.WindowInsetsCompat
-//import androidx.appcompat.app.AppCompatDelegate
-//import com.google.android.material.switchmaterial.SwitchMaterial
-//
-//import rikka.shizuku.Shizuku
-//import rikka.shizuku.ShizukuProvider
-//
-//class MainActivity : AppCompatActivity() {
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        enableEdgeToEdge()
-//        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-//        setContentView(R.layout.activity_main)
-//        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-//            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-//            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-//            insets
-//        }
-//    }
-//}
-
 package com.marcossilqueira.hzchanger // Seu pacote
 
 // Imports necessários (adicione os que faltarem)
@@ -204,25 +172,13 @@ class MainActivity : AppCompatActivity() {
 
     // Verifique se a função checkRootAccess ainda está como placeholder:
     private fun checkRootAccess() {
-        // IMPORTANTE: Esta função ainda não faz a verificação real!
-        //             Vamos implementar isso depois.
-        Log.d("HzChangerApp", "Entrou em checkRootAccess (ainda placeholder)") // Log para saber que chegou aqui
-
-        // Atualiza o status APENAS se Shizuku não estiver OK
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            updateStatus("Shizuku não OK. Verificando Root (WIP)...") // WIP = Work In Progress
-            // Lógica de verificação de Root virá aqui
-            val hasRoot = false // Placeholder
-            if (hasRoot) {
-                updateStatus("Acesso Root detectado! (Placeholder)")
-                enableUiComponents(true)
-            } else {
-                updateStatus("Nem Shizuku nem Root disponíveis.")
-                enableUiComponents(false)
-            }
+        Log.d("HzChangerApp", "Verificando acesso root...")
+        if (isDeviceRooted()) {
+            updateStatus("Acesso root detectado!")
+            enableUiComponents(true)
         } else {
-            // Se chegou aqui mas Shizuku está OK (talvez por causa do try/catch), não faz nada
-            Log.d("HzChangerApp", "checkRootAccess chamado, mas Shizuku já tem permissão.")
+            updateStatus("Acesso root NÃO disponível neste dispositivo.")
+            enableUiComponents(false)
         }
     }
 
@@ -263,6 +219,28 @@ class MainActivity : AppCompatActivity() {
             button60Hz.isEnabled = enabled
             button90Hz.isEnabled = enabled
             button120Hz.isEnabled = enabled
+        }
+    }
+    private fun isDeviceRooted(): Boolean {
+        // 1. Verifica se o binário 'su' existe em locais comuns
+        val paths = arrayOf(
+            "/system/bin/", "/system/xbin/", "/sbin/", "/system/sd/xbin/",
+            "/system/bin/failsafe/", "/data/local/xbin/", "/data/local/bin/", "/data/local/"
+        )
+        for (path in paths) {
+            val file = java.io.File(path + "su")
+            if (file.exists()) {
+                return true
+            }
+        }
+        // 2. Tenta executar o comando 'su'
+        return try {
+            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "echo root"))
+            val result = process.inputStream.bufferedReader().readText()
+            process.destroy()
+            result.contains("root")
+        } catch (e: Exception) {
+            false
         }
     }
 }
