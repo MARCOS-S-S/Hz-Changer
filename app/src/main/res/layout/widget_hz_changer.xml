@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:background="#99000000"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/widget_button_60hz"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="60Hz"
+            android:textColor="@android:color/white"
+            android:backgroundTint="#6200EE"
+            android:layout_marginEnd="4dp"/>
+
+        <Button
+            android:id="@+id/widget_button_90hz"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="90Hz"
+            android:textColor="@android:color/white"
+            android:backgroundTint="#6200EE"
+            android:layout_marginHorizontal="4dp"/>
+
+        <Button
+            android:id="@+id/widget_button_120hz"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="120Hz"
+            android:textColor="@android:color/white"
+            android:backgroundTint="#6200EE"
+            android:layout_marginStart="4dp"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/widget_button_fix"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Fixar taxa"
+        android:textColor="@android:color/white"
+        android:backgroundTint="#03DAC5"
+        android:layout_gravity="center"
+        android:layout_marginTop="8dp"/>
+</LinearLayout>
