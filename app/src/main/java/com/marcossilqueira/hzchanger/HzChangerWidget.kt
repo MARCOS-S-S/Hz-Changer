@@ -16,17 +16,21 @@ class HzChangerWidget : AppWidgetProvider() {
         private const val PREFS_NAME = "com.marcossilqueira.hzchanger.HzChangerWidget"
         private const val PREF_IS_FIXED = "is_fixed_hz"
         private const val PREF_CURRENT_HZ = "current_hz"
+
+        // Novas ações para o widget compacto
+        private const val ACTION_CYCLE_HZ = "ACTION_CYCLE_HZ"
+        private const val ACTION_TOGGLE_FIX = "ACTION_TOGGLE_FIX"
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         Log.d(TAG, "onUpdate: Atualizando widgets")
 
-        // Carrega as preferências
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val isFixed = prefs.getBoolean(PREF_IS_FIXED, false)
+        val currentHz = prefs.getInt(PREF_CURRENT_HZ, 60) // Carrega o Hz atual
 
         for (appWidgetId in appWidgetIds) {
-            updateWidget(context, appWidgetManager, appWidgetId, isFixed)
+            updateWidget(context, appWidgetManager, appWidgetId, isFixed, currentHz)
         }
     }
 
@@ -38,50 +42,56 @@ class HzChangerWidget : AppWidgetProvider() {
 
         Log.d(TAG, "onReceive: Ação recebida: $action")
 
+        // Lógica de ações unificada
         when (action) {
-            "ACTION_SET_60HZ" -> {
-                prefs.edit().putInt(PREF_CURRENT_HZ, 60).apply()
-                sendCommandToService(context, 60)
+            ACTION_CYCLE_HZ -> {
+                var currentHz = prefs.getInt(PREF_CURRENT_HZ, 60)
+
+                // Lógica de circulação
+                currentHz = when (currentHz) {
+                    60 -> 90
+                    90 -> 120
+                    else -> 60 // Volta para 60 se for 120 ou outro valor
+                }
+
+                prefs.edit().putInt(PREF_CURRENT_HZ, currentHz).apply()
+                sendCommandToService(context, currentHz)
             }
-            "ACTION_SET_90HZ" -> {
-                prefs.edit().putInt(PREF_CURRENT_HZ, 90).apply()
-                sendCommandToService(context, 90)
-            }
-            "ACTION_SET_120HZ" -> {
-                prefs.edit().putInt(PREF_CURRENT_HZ, 120).apply()
-                sendCommandToService(context, 120)
-            }
-            "ACTION_TOGGLE_FIX" -> {
+            ACTION_TOGGLE_FIX -> {
                 val isFixed = !prefs.getBoolean(PREF_IS_FIXED, false)
                 prefs.edit().putBoolean(PREF_IS_FIXED, isFixed).apply()
 
-                // Atualiza o widget para refletir a mudança
-                val appWidgetManager = AppWidgetManager.getInstance(context)
-                val thisAppWidget = ComponentName(context.packageName, HzChangerWidget::class.java.name)
-                val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
-
-                for (appWidgetId in appWidgetIds) {
-                    updateWidget(context, appWidgetManager, appWidgetId, isFixed)
-                }
-
-                // Aplica a configuração atual
+                // Aplica a configuração atual com o novo estado de "fixo"
                 val currentHz = prefs.getInt(PREF_CURRENT_HZ, 60)
                 sendToggleFixCommand(context, isFixed, currentHz)
             }
         }
+
+        // Após qualquer ação, atualize a aparência de todos os widgets
+        val appWidgetManager = AppWidgetManager.getInstance(context)
+        val thisAppWidget = ComponentName(context.packageName, HzChangerWidget::class.java.name)
+        val appWidgetIds = appWidgetManager.getAppWidgetIds(thisAppWidget)
+        val isFixed = prefs.getBoolean(PREF_IS_FIXED, false)
+        val currentHz = prefs.getInt(PREF_CURRENT_HZ, 60)
+
+        for (appWidgetId in appWidgetIds) {
+            updateWidget(context, appWidgetManager, appWidgetId, isFixed, currentHz)
+        }
     }
 
-    private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, isFixed: Boolean) {
-        val views = RemoteViews(context.packageName, R.layout.widget_hz_changer)
+    private fun updateWidget(context: Context, appWidgetManager: AppWidgetManager, appWidgetId: Int, isFixed: Boolean, currentHz: Int) {
+        // Aponta para o novo layout compacto
+        val views = RemoteViews(context.packageName, R.layout.widget_hz_changer_compact)
 
-        // Configura os PendingIntents para os botões
-        views.setOnClickPendingIntent(R.id.widget_button_60hz, getPendingIntent(context, "ACTION_SET_60HZ"))
-        views.setOnClickPendingIntent(R.id.widget_button_90hz, getPendingIntent(context, "ACTION_SET_90HZ"))
-        views.setOnClickPendingIntent(R.id.widget_button_120hz, getPendingIntent(context, "ACTION_SET_120HZ"))
-        views.setOnClickPendingIntent(R.id.widget_button_fix, getPendingIntent(context, "ACTION_TOGGLE_FIX"))
+        // Configura os PendingIntents para os novos botões
+        views.setOnClickPendingIntent(R.id.widget_button_cycle_hz, getPendingIntent(context, ACTION_CYCLE_HZ))
+        views.setOnClickPendingIntent(R.id.widget_button_fix, getPendingIntent(context, ACTION_TOGGLE_FIX))
+
+        // Atualiza o texto da frequência atual
+        views.setTextViewText(R.id.widget_text_current_hz, "$currentHz Hz")
 
         // Atualiza o texto do botão de fixar
-        views.setTextViewText(R.id.widget_button_fix, if (isFixed) "Desfixar taxa" else "Fixar taxa")
+        views.setTextViewText(R.id.widget_button_fix, if (isFixed) "Desfixar" else "Fixar")
 
         // Atualiza o widget
         appWidgetManager.updateAppWidget(appWidgetId, views)

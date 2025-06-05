@@ -7,4 +7,6 @@
     <string name="_120_hz">120 Hz</string>
     <string name="verificando_permiss_es">Verificando permissões...</string>
     <string name="status_60_hz_selecionado">Status: 60 Hz selecionado</string>
+    <string name="widget_description">Um widget para trocar e fixar a taxa de atualização da tela.</string>
+    <string name="cycle_refresh_rate">cycle_refresh_rate</string>
 </resources>
