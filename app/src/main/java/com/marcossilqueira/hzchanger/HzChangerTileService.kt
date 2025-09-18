@@ -1,6 +1,11 @@
 package com.marcossilqueira.hzchanger
 
+import android.appwidget.AppWidgetManager
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -20,20 +25,51 @@ class HzChangerTileService : TileService() {
         private const val PREFS_NAME = "HzChangerTileService"
         private const val PREF_CURRENT_STATE = "current_state"
         private const val PREF_CURRENT_HZ = "current_hz"
+        const val ACTION_UPDATE_TILE = "com.marcossilqueira.hzchanger.UPDATE_TILE"
     }
 
     private val handler = Handler(Looper.getMainLooper())
+    private val broadcastReceiver = object : BroadcastReceiver() {
+        @RequiresApi(Build.VERSION_CODES.Q)
+        override fun onReceive(context: Context?, intent: Intent?) {
+            Log.d(TAG, "BroadcastReceiver: Recebido broadcast de atualização do widget")
+            // Força sincronização e atualização do tile
+            syncWithWidget()
+            updateTileImmediately()
+        }
+    }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onStartListening() {
         super.onStartListening()
         Log.d(TAG, "onStartListening: Tile começou a escutar")
+        
+        // Registrar BroadcastReceiver para detectar atualizações do widget
+        val filter = IntentFilter(ACTION_UPDATE_TILE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(broadcastReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            registerReceiver(broadcastReceiver, filter)
+        }
+        
+        // Sincroniza com o estado do widget se disponível
+        syncWithWidget()
+        
         updateTile()
     }
 
     override fun onStopListening() {
         super.onStopListening()
         Log.d(TAG, "onStopListening: Tile parou de escutar")
+        
+        // Desregistrar BroadcastReceiver
+        try {
+            unregisterReceiver(broadcastReceiver)
+            Log.d(TAG, "onStopListening: BroadcastReceiver desregistrado")
+        } catch (e: Exception) {
+            Log.e(TAG, "onStopListening: Erro ao desregistrar BroadcastReceiver", e)
+        }
     }
 
     override fun onDestroy() {
@@ -195,6 +231,12 @@ class HzChangerTileService : TileService() {
         
         Log.d(TAG, "applyRefreshRateChange: Aplicando $peakHz Hz (min: $minHz, fixo: $isFixed)")
         
+        // Salva o estado no SharedPreferences do widget para sincronização
+        saveWidgetState(peakHz, isFixed)
+        
+        // Atualiza o widget
+        updateWidget()
+        
         // Inicia o serviço para aplicar a mudança
         val intent = Intent(this, HzChangerService::class.java).apply {
             putExtra("hz", peakHz)
@@ -220,6 +262,71 @@ class HzChangerTileService : TileService() {
             4 -> Triple(120, 90, false)  // 90-120 Hz variável
             5 -> Triple(120, 120, true)  // 120 Hz fixo
             else -> Triple(60, 60, true)  // Padrão: 60 Hz fixo
+        }
+    }
+
+    private fun saveWidgetState(hz: Int, isFixed: Boolean) {
+        val prefs = getSharedPreferences("com.marcossilqueira.hzchanger.HzChangerWidget", MODE_PRIVATE)
+        prefs.edit()
+            .putInt("current_hz", hz)
+            .putBoolean("is_fixed_hz", isFixed)
+            .apply()
+        Log.d(TAG, "saveWidgetState: Estado salvo - Hz: $hz, Fixo: $isFixed")
+    }
+
+    private fun updateWidget() {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(this)
+            val widgetProvider = ComponentName(this, HzChangerWidget::class.java)
+            val widgetIds = appWidgetManager.getAppWidgetIds(widgetProvider)
+            
+            if (widgetIds.isNotEmpty()) {
+                // Força atualização do widget
+                val intent = Intent(this, HzChangerWidget::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
+                }
+                sendBroadcast(intent)
+                Log.d(TAG, "updateWidget: Widget atualizado com sucesso")
+            } else {
+                Log.d(TAG, "updateWidget: Nenhum widget encontrado")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "updateWidget: Erro ao atualizar widget", e)
+        }
+    }
+
+    private fun syncWithWidget() {
+        try {
+            // Lê o estado atual do widget
+            val widgetPrefs = getSharedPreferences("com.marcossilqueira.hzchanger.HzChangerWidget", MODE_PRIVATE)
+            val widgetHz = widgetPrefs.getInt("current_hz", -1)
+            val widgetIsFixed = widgetPrefs.getBoolean("is_fixed_hz", false)
+            
+            if (widgetHz != -1) {
+                // Converte Hz do widget para estado do tile
+                val tileState = getTileStateFromWidgetHz(widgetHz, widgetIsFixed)
+                
+                // Atualiza o estado do tile
+                val tilePrefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                tilePrefs.edit().putInt(PREF_CURRENT_HZ, tileState).apply()
+                
+                Log.d(TAG, "syncWithWidget: Sincronizado com widget - Hz: $widgetHz, Fixo: $widgetIsFixed, Estado: $tileState")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "syncWithWidget: Erro ao sincronizar com widget", e)
+        }
+    }
+
+    private fun getTileStateFromWidgetHz(hz: Int, isFixed: Boolean): Int {
+        return when {
+            hz == 60 && isFixed -> 0  // 60 Hz fixo
+            hz == 90 && !isFixed -> 1  // 60-90 Hz variável
+            hz == 120 && !isFixed -> 2  // 60-120 Hz variável
+            hz == 90 && isFixed -> 3   // 90 Hz fixo
+            hz == 120 && !isFixed -> 4  // 90-120 Hz variável
+            hz == 120 && isFixed -> 5   // 120 Hz fixo
+            else -> 0  // Padrão: 60 Hz fixo
         }
     }
 }

@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.service.quicksettings.Tile
 import android.widget.RemoteViews
 import android.util.Log
 
@@ -110,6 +111,12 @@ class HzChangerWidget : AppWidgetProvider() {
     }
 
     private fun sendCommandToService(context: Context, hz: Int) {
+        // Salva o estado no SharedPreferences do tile para sincronização
+        saveTileState(context, hz)
+        
+        // Atualiza o tile do Quick Settings
+        updateTile(context)
+        
         val intent = Intent(context, HzChangerService::class.java).apply {
             putExtra("hz", hz)
             putExtra("is_from_widget", true)
@@ -118,6 +125,12 @@ class HzChangerWidget : AppWidgetProvider() {
     }
 
     private fun sendToggleFixCommand(context: Context, isFixed: Boolean, hz: Int) {
+        // Salva o estado no SharedPreferences do tile para sincronização
+        saveTileState(context, hz, isFixed)
+        
+        // Atualiza o tile do Quick Settings
+        updateTile(context)
+        
         val intent = Intent(context, HzChangerService::class.java).apply {
             putExtra("toggle_fix", true)
             putExtra("is_fixed", isFixed)
@@ -125,5 +138,40 @@ class HzChangerWidget : AppWidgetProvider() {
             putExtra("is_from_widget", true)
         }
         context.startForegroundService(intent)
+    }
+
+    private fun saveTileState(context: Context, hz: Int, isFixed: Boolean? = null) {
+        val prefs = context.getSharedPreferences("HzChangerTileService", Context.MODE_PRIVATE)
+        val editor = prefs.edit()
+        
+        // Converte Hz para estado do tile
+        val tileState = getTileStateFromHz(hz, isFixed ?: false)
+        editor.putInt("current_hz", tileState)
+        
+        Log.d(TAG, "saveTileState: Estado do tile salvo - Hz: $hz, Estado: $tileState")
+        editor.apply()
+    }
+
+    private fun getTileStateFromHz(hz: Int, isFixed: Boolean): Int {
+        return when {
+            hz == 60 && isFixed -> 0  // 60 Hz fixo
+            hz == 90 && !isFixed -> 1  // 60-90 Hz variável
+            hz == 120 && !isFixed -> 2  // 60-120 Hz variável
+            hz == 90 && isFixed -> 3   // 90 Hz fixo
+            hz == 120 && !isFixed -> 4  // 90-120 Hz variável
+            hz == 120 && isFixed -> 5   // 120 Hz fixo
+            else -> 0  // Padrão: 60 Hz fixo
+        }
+    }
+
+    private fun updateTile(context: Context) {
+        try {
+            // Força atualização do tile do Quick Settings
+            val intent = Intent(HzChangerTileService.ACTION_UPDATE_TILE)
+            context.sendBroadcast(intent)
+            Log.d(TAG, "updateTile: Tile do Quick Settings atualizado")
+        } catch (e: Exception) {
+            Log.e(TAG, "updateTile: Erro ao atualizar tile", e)
+        }
     }
 }

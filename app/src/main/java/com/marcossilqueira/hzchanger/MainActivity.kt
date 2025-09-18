@@ -1,6 +1,9 @@
 package com.marcossilqueira.hzchanger // Seu pacote
 
 // Imports necessários (adicione os que faltarem)
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.widget.Button
@@ -70,14 +73,41 @@ class MainActivity : AppCompatActivity() {
         }
     }
     private fun updateCurrentRefreshRate() {
-        val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            display
-        } else {
-            @Suppress("DEPRECATION")
-            windowManager.defaultDisplay
+        try {
+            val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                display
+            } else {
+                @Suppress("DEPRECATION")
+                windowManager.defaultDisplay
+            }
+            val refreshRate = display?.refreshRate ?: 0f
+            currentRefreshRateTextView.text = getString(R.string.taxa_atual_format, refreshRate.toInt())
+            Log.d("MainActivity", "updateCurrentRefreshRate: Taxa atual atualizada para ${refreshRate.toInt()} Hz")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "updateCurrentRefreshRate: Erro ao atualizar taxa atual", e)
         }
-        val refreshRate = display?.refreshRate ?: 0f
-        currentRefreshRateTextView.text = getString(R.string.taxa_atual_format, refreshRate.toInt())
+    }
+
+    private fun syncSwitchState() {
+        try {
+            // Lê o estado atual do widget
+            val widgetPrefs = getSharedPreferences("com.marcossilqueira.hzchanger.HzChangerWidget", MODE_PRIVATE)
+            val widgetIsFixed = widgetPrefs.getBoolean("is_fixed_hz", false)
+            val widgetHz = widgetPrefs.getInt("current_hz", 60)
+            
+            // Atualiza o estado interno
+            isFixedHz = widgetIsFixed
+            selectedHz = widgetHz
+            
+            // Atualiza o switch na UI
+            runOnUiThread {
+                switchFixedHz.isChecked = widgetIsFixed
+            }
+            
+            Log.d("MainActivity", "syncSwitchState: Switch sincronizado - Hz: $widgetHz, Fixo: $widgetIsFixed")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "syncSwitchState: Erro ao sincronizar switch", e)
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -142,6 +172,15 @@ class MainActivity : AppCompatActivity() {
         // Iniciar verificação de permissão
         checkShizukuPermission()
 
+        // Atualizar taxa atual quando o app é aberto
+        updateCurrentRefreshRate()
+        
+        // Sincronizar estado do switch quando o app é aberto
+        syncSwitchState()
+        
+        // Atualizar widget quando o app é aberto
+        updateWidget()
+
         // ----- CONFIGURAR LISTENERS PARA OS BOTÕES (FAREMOS DEPOIS) ----
         // button30Hz.setOnClickListener { ... }
         // button60Hz.setOnClickListener { ... }
@@ -177,10 +216,42 @@ class MainActivity : AppCompatActivity() {
             updateStatus(getString(R.string.erro_definir_taxa, e.message ?: "Erro desconhecido"))
         }
         updateCurrentRefreshRate()
+        
+        // Salvar estado no SharedPreferences para sincronização
+        saveAppState(hz)
+        
+        // Atualizar widget após alterar taxa
+        updateWidget()
+        
+        // Atualizar tile do Quick Settings
+        updateTile()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Atualizar taxa atual quando o app é pausado
+        updateCurrentRefreshRate()
+        // Sincronizar estado do switch quando o app é pausado
+        syncSwitchState()
+        // Atualizar widget quando o app é pausado
+        updateWidget()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Atualizar taxa atual quando o app é retomado
+        updateCurrentRefreshRate()
+        // Sincronizar estado do switch quando o app é retomado
+        syncSwitchState()
+        // Atualizar widget quando o app é retomado
+        updateWidget()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        // Atualizar widget quando o app é fechado
+        updateWidget()
+        
         // Remover listeners para evitar memory leaks
         Shizuku.removeBinderReceivedListener(shizukuBinderListener)
         Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
@@ -307,6 +378,73 @@ class MainActivity : AppCompatActivity() {
             result.contains("root")
         } catch (e: Exception) {
             false
+        }
+    }
+
+    private fun updateWidget() {
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(this)
+            val widgetProvider = ComponentName(this, HzChangerWidget::class.java)
+            val widgetIds = appWidgetManager.getAppWidgetIds(widgetProvider)
+            
+            if (widgetIds.isNotEmpty()) {
+                // Força atualização do widget
+                val intent = Intent(this, HzChangerWidget::class.java).apply {
+                    action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                    putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, widgetIds)
+                }
+                sendBroadcast(intent)
+                Log.d("MainActivity", "updateWidget: Widget atualizado com sucesso")
+            } else {
+                Log.d("MainActivity", "updateWidget: Nenhum widget encontrado")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "updateWidget: Erro ao atualizar widget", e)
+        }
+    }
+
+    private fun saveAppState(hz: Int) {
+        try {
+            // Salva no SharedPreferences do widget
+            val widgetPrefs = getSharedPreferences("com.marcossilqueira.hzchanger.HzChangerWidget", MODE_PRIVATE)
+            widgetPrefs.edit()
+                .putInt("current_hz", hz)
+                .putBoolean("is_fixed_hz", isFixedHz)
+                .apply()
+            
+            // Salva no SharedPreferences do tile
+            val tilePrefs = getSharedPreferences("HzChangerTileService", MODE_PRIVATE)
+            val tileState = getTileStateFromAppHz(hz, isFixedHz)
+            tilePrefs.edit()
+                .putInt("current_hz", tileState)
+                .apply()
+            
+            Log.d("MainActivity", "saveAppState: Estado salvo - Hz: $hz, Fixo: $isFixedHz, Estado Tile: $tileState")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "saveAppState: Erro ao salvar estado", e)
+        }
+    }
+
+    private fun getTileStateFromAppHz(hz: Int, isFixed: Boolean): Int {
+        return when {
+            hz == 60 && isFixed -> 0  // 60 Hz fixo
+            hz == 90 && !isFixed -> 1  // 60-90 Hz variável
+            hz == 120 && !isFixed -> 2  // 60-120 Hz variável
+            hz == 90 && isFixed -> 3   // 90 Hz fixo
+            hz == 120 && !isFixed -> 4  // 90-120 Hz variável
+            hz == 120 && isFixed -> 5   // 120 Hz fixo
+            else -> 0  // Padrão: 60 Hz fixo
+        }
+    }
+
+    private fun updateTile() {
+        try {
+            // Força atualização do tile do Quick Settings
+            val intent = Intent(HzChangerTileService.ACTION_UPDATE_TILE)
+            sendBroadcast(intent)
+            Log.d("MainActivity", "updateTile: Tile do Quick Settings atualizado")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "updateTile: Erro ao atualizar tile", e)
         }
     }
 }
