@@ -44,11 +44,17 @@ class HzChangerService : Service() {
         // Processa a intenção
         if (intent != null) {
             val hz = intent.getIntExtra("hz", 60)
+            val minHz = intent.getIntExtra("min_hz", 60)
             val isFromWidget = intent.getBooleanExtra("is_from_widget", false)
+            val isFromTile = intent.getBooleanExtra("is_from_tile", false)
 
             if (intent.getBooleanExtra("toggle_fix", false)) {
                 val isFixed = intent.getBooleanExtra("is_fixed", false)
                 setRefreshRate(hz, isFixed)
+            } else if (isFromTile) {
+                // Vem do tile - usa configurações específicas
+                val isFixed = intent.getBooleanExtra("is_fixed", false)
+                setRefreshRateWithMinHz(hz, minHz, isFixed)
             } else {
                 // Carrega o estado atual de "fixar"
                 val prefs = getSharedPreferences(
@@ -83,6 +89,30 @@ class HzChangerService : Service() {
             )
         }
 
+        executeCommands(commands)
+    }
+
+    private fun setRefreshRateWithMinHz(peakHz: Int, minHz: Int, isFixed: Boolean) {
+        Log.d(TAG, "setRefreshRateWithMinHz: Peak: $peakHz Hz, Min: $minHz Hz, Fixo: $isFixed")
+
+        val commands = if (isFixed) {
+            // Fixo: min e peak iguais
+            arrayOf(
+                "settings put system peak_refresh_rate $peakHz.0",
+                "settings put system min_refresh_rate $peakHz.0"
+            )
+        } else {
+            // Variável: min e peak diferentes
+            arrayOf(
+                "settings put system peak_refresh_rate $peakHz.0",
+                "settings put system min_refresh_rate $minHz.0"
+            )
+        }
+
+        executeCommands(commands)
+    }
+
+    private fun executeCommands(commands: Array<String>) {
         try {
             if (isDeviceRooted()) {
                 for (cmd in commands) {
