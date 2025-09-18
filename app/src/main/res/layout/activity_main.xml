@@ -151,4 +151,18 @@
         app:layout_constraintStart_toStartOf="parent"
         tools:text="@string/status_60_hz_selecionado"/>
 
+    <!-- Botão de Informação -->
+    <ImageButton
+        android:id="@+id/button_info"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
+        android:background="?android:attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/info_button_description"
+        android:src="@drawable/ic_info"
+        android:padding="12dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

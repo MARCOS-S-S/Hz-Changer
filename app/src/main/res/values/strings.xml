@@ -2,6 +2,12 @@
     <!-- App Name -->
     <string name="app_name">Hz Changer</string>
     
+    <!-- Info Button -->
+    <string name="info_button_description">Informações sobre o app</string>
+    <string name="info_dialog_title">Hz Changer</string>
+    <string name="info_dialog_message">Este app permite alterar a taxa de atualização da tela do seu dispositivo.\n\n• Selecione a taxa mínima e máxima desejadas\n• A taxa mínima deve ser menor que a taxa máxima\n• O app precisa de permissões root (Shizuku ainda não está funcionando)\n• Use o widget para controle rápido\n• Um botão no painel QS também está disponível.\nVersão 1.1</string>
+    <string name="info_dialog_ok">OK</string>
+    
     <!-- Main Activity -->
     <string name="fixar_taxa">Fixar Taxa</string>
     <string name="_30_hz">30 Hz</string>

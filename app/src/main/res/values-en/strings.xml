@@ -2,6 +2,12 @@
     <!-- App Name -->
     <string name="app_name">Hz Changer</string>
     
+    <!-- Info Button -->
+    <string name="info_button_description">App information</string>
+    <string name="info_dialog_title">Hz Changer</string>
+    <string name="info_dialog_message">This app allows you to change your device\'s screen refresh rate.\n\n• Select your desired minimum and maximum rates\n• The minimum rate must be lower than the maximum rate\n• The app requires root permissions (Shizuku is not working yet)\n• Use the widget for quick control\n\nVersion 1.0</string>
+    <string name="info_dialog_ok">OK</string>
+    
     <!-- Main Activity -->
     <string name="fixar_taxa">Fix Rate</string>
     <string name="_30_hz">30 Hz</string>

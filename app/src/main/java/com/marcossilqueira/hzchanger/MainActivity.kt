@@ -37,6 +37,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var buttonMin90Hz: Button
     private lateinit var buttonMin120Hz: Button
     private lateinit var currentRefreshRateTextView: TextView
+    private lateinit var buttonInfo: android.widget.ImageButton
     private var selectedMaxHz: Int = 60 // taxa máxima selecionada
     private var selectedMinHz: Int = 60 // taxa mínima selecionada
 
@@ -133,6 +134,7 @@ class MainActivity : AppCompatActivity() {
         buttonMin90Hz = findViewById(R.id.button_min_90hz)
         buttonMin120Hz = findViewById(R.id.button_min_120hz)
         currentRefreshRateTextView = findViewById(R.id.text_view_current_refresh_rate)
+        buttonInfo = findViewById(R.id.button_info)
         updateCurrentRefreshRate()
 
         // Configurar listeners para taxa máxima
@@ -144,6 +146,9 @@ class MainActivity : AppCompatActivity() {
         buttonMin60Hz.setOnClickListener { selectMinRate(60) }
         buttonMin90Hz.setOnClickListener { selectMinRate(90) }
         buttonMin120Hz.setOnClickListener { selectMinRate(120) }
+
+        // Configurar listener para botão de informação
+        buttonInfo.setOnClickListener { showInfoDialog() }
 
         // Inicialmente desabilitar botões até checar permissão
         enableUiComponents(false)
@@ -487,5 +492,15 @@ class MainActivity : AppCompatActivity() {
             peakHz == 120 && isFixed -> 5   // 120 Hz fixo
             else -> 0  // Padrão: 60 Hz fixo
         }
+    }
+
+    private fun showInfoDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(getString(R.string.info_dialog_title))
+            .setMessage(getString(R.string.info_dialog_message))
+            .setPositiveButton(getString(R.string.info_dialog_ok)) { dialog, _ ->
+                dialog.dismiss()
+            }
+            .show()
     }
 }
