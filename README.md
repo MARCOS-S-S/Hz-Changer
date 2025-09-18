@@ -1,6 +1,6 @@
 # Hz Changer
 
-Um aplicativo Android que permite alterar a taxa de atualização (refresh rate) da tela do seu dispositivo, oferecendo controle granular entre 60Hz, 90Hz e 120Hz.
+Um aplicativo Android que permite alterar a taxa de atualização (refresh rate) da tela do seu dispositivo, oferecendo opções de controle entre 60Hz, 90Hz e 120Hz.
 
 ## 📱 Características
 
