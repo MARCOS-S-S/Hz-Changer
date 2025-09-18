@@ -8,10 +8,14 @@
     <string name="_60_hz">60 Hz</string>
     <string name="_90_hz">90 Hz</string>
     <string name="_120_hz">120 Hz</string>
+    <string name="taxa_maxima">Taxa Máxima</string>
+    <string name="taxa_minima">Taxa Mínima</string>
+    <string name="aplicar_taxa">Aplicar Taxa</string>
     <string name="verificando_permiss_es">Verificando permissões...</string>
     <string name="status_60_hz_selecionado">Status: 60 Hz selecionado</string>
     <string name="taxa_atual_format">Taxa atual: %d Hz</string>
     <string name="taxa_atual_placeholder">Taxa atual: -- Hz</string>
+    <string name="taxa_configurada_format">Taxa configurada: %d-%d Hz</string>
     
     <!-- Status Messages -->
     <string name="permissao_shizuku_concedida">Permissão Shizuku concedida!</string>

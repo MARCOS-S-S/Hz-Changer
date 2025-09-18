@@ -30,14 +30,15 @@ class MainActivity : AppCompatActivity() {
 
     // Views (para fácil acesso) - Encontre-as no onCreate
     private lateinit var statusTextView: TextView
-    private lateinit var switchFixedHz: SwitchMaterial
-    private lateinit var button30Hz: Button
-    private lateinit var button60Hz: Button
-    private lateinit var button90Hz: Button
-    private lateinit var button120Hz: Button
+    private lateinit var buttonMax60Hz: Button
+    private lateinit var buttonMax90Hz: Button
+    private lateinit var buttonMax120Hz: Button
+    private lateinit var buttonMin60Hz: Button
+    private lateinit var buttonMin90Hz: Button
+    private lateinit var buttonMin120Hz: Button
     private lateinit var currentRefreshRateTextView: TextView
-    private var isFixedHz: Boolean = false
-    private var selectedHz: Int = 60 // valor padrão inicial
+    private var selectedMaxHz: Int = 60 // taxa máxima selecionada
+    private var selectedMinHz: Int = 60 // taxa mínima selecionada
 
     // Listener para o resultado da permissão Shizuku
     private val requestPermissionLauncher =
@@ -88,7 +89,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun syncSwitchState() {
+    private fun syncButtonStates() {
         try {
             // Lê o estado atual do widget
             val widgetPrefs = getSharedPreferences("com.marcossilqueira.hzchanger.HzChangerWidget", MODE_PRIVATE)
@@ -96,17 +97,24 @@ class MainActivity : AppCompatActivity() {
             val widgetHz = widgetPrefs.getInt("current_hz", 60)
             
             // Atualiza o estado interno
-            isFixedHz = widgetIsFixed
-            selectedHz = widgetHz
-            
-            // Atualiza o switch na UI
-            runOnUiThread {
-                switchFixedHz.isChecked = widgetIsFixed
+            if (widgetIsFixed) {
+                selectedMaxHz = widgetHz
+                selectedMinHz = widgetHz
+            } else {
+                // Para taxa variável, assume configurações padrão baseadas no Hz
+                when (widgetHz) {
+                    90 -> { selectedMaxHz = 90; selectedMinHz = 60 }
+                    120 -> { selectedMaxHz = 120; selectedMinHz = 60 }
+                    else -> { selectedMaxHz = 60; selectedMinHz = 60 }
+                }
             }
             
-            Log.d("MainActivity", "syncSwitchState: Switch sincronizado - Hz: $widgetHz, Fixo: $widgetIsFixed")
+            // Atualiza os botões na UI
+            updateButtonStates()
+            
+            Log.d("MainActivity", "syncButtonStates: Botões sincronizados - Max: $selectedMaxHz, Min: $selectedMinHz")
         } catch (e: Exception) {
-            Log.e("MainActivity", "syncSwitchState: Erro ao sincronizar switch", e)
+            Log.e("MainActivity", "syncButtonStates: Erro ao sincronizar botões", e)
         }
     }
 
@@ -118,35 +126,24 @@ class MainActivity : AppCompatActivity() {
 
         // Encontrar as Views pelo ID
         statusTextView = findViewById(R.id.text_view_status)
-        switchFixedHz = findViewById(R.id.switch_fixed_hz)
-        button30Hz = findViewById(R.id.button_30hz)
-        button60Hz = findViewById(R.id.button_60hz)
-        button90Hz = findViewById(R.id.button_90hz)
-        button120Hz = findViewById(R.id.button_120hz)
+        buttonMax60Hz = findViewById(R.id.button_max_60hz)
+        buttonMax90Hz = findViewById(R.id.button_max_90hz)
+        buttonMax120Hz = findViewById(R.id.button_max_120hz)
+        buttonMin60Hz = findViewById(R.id.button_min_60hz)
+        buttonMin90Hz = findViewById(R.id.button_min_90hz)
+        buttonMin120Hz = findViewById(R.id.button_min_120hz)
         currentRefreshRateTextView = findViewById(R.id.text_view_current_refresh_rate)
         updateCurrentRefreshRate()
 
-        button30Hz.setOnClickListener {
-            selectedHz = 30
-            setRefreshRate(selectedHz)
-        }
-        button60Hz.setOnClickListener {
-            selectedHz = 60
-            setRefreshRate(selectedHz)
-        }
-        button90Hz.setOnClickListener {
-            selectedHz = 90
-            setRefreshRate(selectedHz)
-        }
-        button120Hz.setOnClickListener {
-            selectedHz = 120
-            setRefreshRate(selectedHz)
-        }
+        // Configurar listeners para taxa máxima
+        buttonMax60Hz.setOnClickListener { selectMaxRate(60) }
+        buttonMax90Hz.setOnClickListener { selectMaxRate(90) }
+        buttonMax120Hz.setOnClickListener { selectMaxRate(120) }
 
-        switchFixedHz.setOnCheckedChangeListener { _, isChecked ->
-            isFixedHz = isChecked
-            setRefreshRate(selectedHz) // Aplica imediatamente a nova configuração
-        }
+        // Configurar listeners para taxa mínima
+        buttonMin60Hz.setOnClickListener { selectMinRate(60) }
+        buttonMin90Hz.setOnClickListener { selectMinRate(90) }
+        buttonMin120Hz.setOnClickListener { selectMinRate(120) }
 
         // Inicialmente desabilitar botões até checar permissão
         enableUiComponents(false)
@@ -175,8 +172,8 @@ class MainActivity : AppCompatActivity() {
         // Atualizar taxa atual quando o app é aberto
         updateCurrentRefreshRate()
         
-        // Sincronizar estado do switch quando o app é aberto
-        syncSwitchState()
+        // Sincronizar estado dos botões quando o app é aberto
+        syncButtonStates()
         
         // Atualizar widget quando o app é aberto
         updateWidget()
@@ -187,52 +184,13 @@ class MainActivity : AppCompatActivity() {
         // ...
         // switchFixedHz.setOnCheckedChangeListener { _, isChecked -> ... }
     }
-    private fun setRefreshRate(hz: Int) {
-        val commands = if (isFixedHz) {
-            // Fixar: define min e peak para o mesmo valor
-            arrayOf(
-                "settings put system peak_refresh_rate $hz.0",
-                "settings put system min_refresh_rate $hz.0"
-            )
-        } else {
-            // Não fixar: define apenas peak, min volta para 60
-            arrayOf(
-                "settings put system peak_refresh_rate $hz.0",
-                "settings put system min_refresh_rate 60.0"
-            )
-        }
-        try {
-            if (isDeviceRooted()) {
-                for (cmd in commands) {
-                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd))
-                    process.waitFor()
-                }
-                val sufixo = if (isFixedHz) getString(R.string.taxa_fixa_sufixo) else ""
-                updateStatus(getString(R.string.taxa_definida_format, hz, sufixo))
-            } else {
-                updateStatus(getString(R.string.sem_permissao_alterar_taxa))
-            }
-        } catch (e: Exception) {
-            updateStatus(getString(R.string.erro_definir_taxa, e.message ?: "Erro desconhecido"))
-        }
-        updateCurrentRefreshRate()
-        
-        // Salvar estado no SharedPreferences para sincronização
-        saveAppState(hz)
-        
-        // Atualizar widget após alterar taxa
-        updateWidget()
-        
-        // Atualizar tile do Quick Settings
-        updateTile()
-    }
 
     override fun onPause() {
         super.onPause()
         // Atualizar taxa atual quando o app é pausado
         updateCurrentRefreshRate()
-        // Sincronizar estado do switch quando o app é pausado
-        syncSwitchState()
+        // Sincronizar estado dos botões quando o app é pausado
+        syncButtonStates()
         // Atualizar widget quando o app é pausado
         updateWidget()
     }
@@ -241,8 +199,8 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // Atualizar taxa atual quando o app é retomado
         updateCurrentRefreshRate()
-        // Sincronizar estado do switch quando o app é retomado
-        syncSwitchState()
+        // Sincronizar estado dos botões quando o app é retomado
+        syncButtonStates()
         // Atualizar widget quando o app é retomado
         updateWidget()
     }
@@ -351,11 +309,12 @@ class MainActivity : AppCompatActivity() {
     // Função para habilitar/desabilitar os controles da UI
     private fun enableUiComponents(enabled: Boolean) {
         runOnUiThread {
-            switchFixedHz.isEnabled = enabled
-            button30Hz.isEnabled = enabled
-            button60Hz.isEnabled = enabled
-            button90Hz.isEnabled = enabled
-            button120Hz.isEnabled = enabled
+            buttonMax60Hz.isEnabled = enabled
+            buttonMax90Hz.isEnabled = enabled
+            buttonMax120Hz.isEnabled = enabled
+            buttonMin60Hz.isEnabled = enabled
+            buttonMin90Hz.isEnabled = enabled
+            buttonMin120Hz.isEnabled = enabled
         }
     }
     private fun isDeviceRooted(): Boolean {
@@ -403,39 +362,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveAppState(hz: Int) {
-        try {
-            // Salva no SharedPreferences do widget
-            val widgetPrefs = getSharedPreferences("com.marcossilqueira.hzchanger.HzChangerWidget", MODE_PRIVATE)
-            widgetPrefs.edit()
-                .putInt("current_hz", hz)
-                .putBoolean("is_fixed_hz", isFixedHz)
-                .apply()
-            
-            // Salva no SharedPreferences do tile
-            val tilePrefs = getSharedPreferences("HzChangerTileService", MODE_PRIVATE)
-            val tileState = getTileStateFromAppHz(hz, isFixedHz)
-            tilePrefs.edit()
-                .putInt("current_hz", tileState)
-                .apply()
-            
-            Log.d("MainActivity", "saveAppState: Estado salvo - Hz: $hz, Fixo: $isFixedHz, Estado Tile: $tileState")
-        } catch (e: Exception) {
-            Log.e("MainActivity", "saveAppState: Erro ao salvar estado", e)
-        }
-    }
-
-    private fun getTileStateFromAppHz(hz: Int, isFixed: Boolean): Int {
-        return when {
-            hz == 60 && isFixed -> 0  // 60 Hz fixo
-            hz == 90 && !isFixed -> 1  // 60-90 Hz variável
-            hz == 120 && !isFixed -> 2  // 60-120 Hz variável
-            hz == 90 && isFixed -> 3   // 90 Hz fixo
-            hz == 120 && !isFixed -> 4  // 90-120 Hz variável
-            hz == 120 && isFixed -> 5   // 120 Hz fixo
-            else -> 0  // Padrão: 60 Hz fixo
-        }
-    }
 
     private fun updateTile() {
         try {
@@ -445,6 +371,121 @@ class MainActivity : AppCompatActivity() {
             Log.d("MainActivity", "updateTile: Tile do Quick Settings atualizado")
         } catch (e: Exception) {
             Log.e("MainActivity", "updateTile: Erro ao atualizar tile", e)
+        }
+    }
+
+    private fun selectMaxRate(hz: Int) {
+        selectedMaxHz = hz
+        updateButtonStates()
+        applyRefreshRate()
+        Log.d("MainActivity", "selectMaxRate: Taxa máxima selecionada: $hz Hz")
+    }
+
+    private fun selectMinRate(hz: Int) {
+        selectedMinHz = hz
+        updateButtonStates()
+        applyRefreshRate()
+        Log.d("MainActivity", "selectMinRate: Taxa mínima selecionada: $hz Hz")
+    }
+
+    private fun updateButtonStates() {
+        runOnUiThread {
+            // Atualizar botões de taxa máxima
+            buttonMax60Hz.isSelected = (selectedMaxHz == 60)
+            buttonMax90Hz.isSelected = (selectedMaxHz == 90)
+            buttonMax120Hz.isSelected = (selectedMaxHz == 120)
+
+            // Atualizar botões de taxa mínima
+            buttonMin60Hz.isSelected = (selectedMinHz == 60)
+            buttonMin90Hz.isSelected = (selectedMinHz == 90)
+            buttonMin120Hz.isSelected = (selectedMinHz == 120)
+        }
+    }
+
+    private fun applyRefreshRate() {
+        val isFixed = (selectedMaxHz == selectedMinHz)
+        val peakHz = selectedMaxHz
+        val minHz = selectedMinHz
+
+        Log.d("MainActivity", "applyRefreshRate: Aplicando taxa - Max: $peakHz Hz, Min: $minHz Hz, Fixo: $isFixed")
+
+        val commands = if (isFixed) {
+            // Fixo: min e peak iguais
+            arrayOf(
+                "settings put system peak_refresh_rate $peakHz.0",
+                "settings put system min_refresh_rate $peakHz.0"
+            )
+        } else {
+            // Variável: min e peak diferentes
+            arrayOf(
+                "settings put system peak_refresh_rate $peakHz.0",
+                "settings put system min_refresh_rate $minHz.0"
+            )
+        }
+
+        try {
+            if (isDeviceRooted()) {
+                for (cmd in commands) {
+                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd))
+                    process.waitFor()
+                }
+                val sufixo = if (isFixed) getString(R.string.taxa_fixa_sufixo) else ""
+                val message = if (isFixed) {
+                    getString(R.string.taxa_definida_format, peakHz, sufixo)
+                } else {
+                    getString(R.string.taxa_configurada_format, minHz, peakHz)
+                }
+                updateStatus(message)
+            } else {
+                updateStatus(getString(R.string.sem_permissao_alterar_taxa))
+            }
+        } catch (e: Exception) {
+            updateStatus(getString(R.string.erro_definir_taxa, e.message ?: "Erro desconhecido"))
+        }
+
+        updateCurrentRefreshRate()
+
+        // Salvar estado no SharedPreferences para sincronização
+        saveAppState(peakHz, minHz, isFixed)
+
+        // Atualizar widget após alterar taxa
+        updateWidget()
+
+        // Atualizar tile do Quick Settings
+        updateTile()
+    }
+
+    private fun saveAppState(peakHz: Int, minHz: Int, isFixed: Boolean) {
+        try {
+            // Salva no SharedPreferences do widget
+            val widgetPrefs = getSharedPreferences("com.marcossilqueira.hzchanger.HzChangerWidget", MODE_PRIVATE)
+            widgetPrefs.edit()
+                .putInt("current_hz", peakHz)
+                .putBoolean("is_fixed_hz", isFixed)
+                .apply()
+
+            // Salva no SharedPreferences do tile
+            val tilePrefs = getSharedPreferences("HzChangerTileService", MODE_PRIVATE)
+            val tileState = getTileStateFromAppHz(peakHz, minHz, isFixed)
+            tilePrefs.edit()
+                .putInt("current_hz", tileState)
+                .apply()
+
+            Log.d("MainActivity", "saveAppState: Estado salvo - Peak: $peakHz Hz, Min: $minHz Hz, Fixo: $isFixed, Estado Tile: $tileState")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "saveAppState: Erro ao salvar estado", e)
+        }
+    }
+
+    private fun getTileStateFromAppHz(peakHz: Int, minHz: Int, isFixed: Boolean): Int {
+        return when {
+            peakHz == 60 && isFixed -> 0  // 60 Hz fixo
+            peakHz == 90 && !isFixed && minHz == 60 -> 1  // 60-90 Hz variável
+            peakHz == 120 && !isFixed && minHz == 60 -> 2  // 60-120 Hz variável
+            peakHz == 90 && isFixed -> 3   // 90 Hz fixo
+            peakHz == 120 && !isFixed && minHz == 90 -> 4  // 90-120 Hz variável
+            peakHz == 120 && isFixed -> 5   // 120 Hz fixo
+            else -> 0  // Padrão: 60 Hz fixo
         }
     }
 }
