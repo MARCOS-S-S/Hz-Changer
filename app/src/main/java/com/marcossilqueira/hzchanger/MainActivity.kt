@@ -18,15 +18,9 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.switchmaterial.SwitchMaterial // Adicione se não estiver
 
-// Imports do Shizuku
-import rikka.shizuku.Shizuku
-import rikka.shizuku.ShizukuProvider // Pode não ser necessário importar diretamente aqui
-//import rikka.shizuku.ShizukuRemoteContext // Para obter o contexto do Shizuku
 
 class MainActivity : AppCompatActivity() {
 
-    // Constante para o código de requisição de permissão
-    private val SHIZUKU_PERMISSION_REQUEST_CODE = 1001
 
     // Views (para fácil acesso) - Encontre-as no onCreate
     private lateinit var statusTextView: TextView
@@ -41,39 +35,6 @@ class MainActivity : AppCompatActivity() {
     private var selectedMaxHz: Int = 60 // taxa máxima selecionada
     private var selectedMinHz: Int = 60 // taxa mínima selecionada
 
-    // Listener para o resultado da permissão Shizuku
-    private val requestPermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
-                updateStatus(getString(R.string.permissao_shizuku_concedida))
-                // Habilitar funcionalidades que dependem do Shizuku
-                enableUiComponents(true)
-            } else {
-                updateStatus(getString(R.string.permissao_shizuku_negada))
-                // Desabilitar funcionalidades ou mostrar aviso
-                enableUiComponents(false) // Ou apenas as que dependem de permissão
-            }
-        }
-
-    // Listener para o estado do Shizuku (se está ativo ou não)
-    private val shizukuBinderListener = Shizuku.OnBinderReceivedListener {
-        // Chamado quando o Shizuku conecta (ou já estava conectado)
-        checkShizukuPermission()
-    }
-
-    // Listener para o resultado da requisição de permissão (caso use o método antigo)
-    // Usaremos o ActivityResultContracts acima, mas é bom saber que existe este
-    private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
-        if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
-            if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                updateStatus(getString(R.string.permissao_shizuku_concedida_listener))
-                enableUiComponents(true)
-            } else {
-                updateStatus(getString(R.string.permissao_shizuku_negada_listener))
-                enableUiComponents(false)
-            }
-        }
-    }
     private fun updateCurrentRefreshRate() {
         try {
             val display = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -153,10 +114,6 @@ class MainActivity : AppCompatActivity() {
         // Inicialmente desabilitar botões até checar permissão
         enableUiComponents(false)
 
-        // Adicionar listeners do Shizuku
-        Shizuku.addBinderReceivedListener(shizukuBinderListener)
-        Shizuku.addRequestPermissionResultListener(shizukuPermissionListener)
-
 
         // --- Ajuste para compatibilidade com EdgeToEdge ---
         // Se você tem `enableEdgeToEdge()`, o código original do ViewCompat pode
@@ -171,8 +128,8 @@ class MainActivity : AppCompatActivity() {
         }
          */
 
-        // Iniciar verificação de permissão
-        checkShizukuPermission()
+        // Iniciar verificação de permissão root
+        checkRootAccess()
 
         // Atualizar taxa atual quando o app é aberto
         updateCurrentRefreshRate()
@@ -214,63 +171,8 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         // Atualizar widget quando o app é fechado
         updateWidget()
-        
-        // Remover listeners para evitar memory leaks
-        Shizuku.removeBinderReceivedListener(shizukuBinderListener)
-        Shizuku.removeRequestPermissionResultListener(shizukuPermissionListener)
     }
 
-    private fun checkShizukuPermission() {
-        try { // <--- Adiciona o try aqui
-            // Verificar se o Shizuku está instalado e rodando
-            if (Shizuku.isPreV11() || Shizuku.getVersion() < 10) {
-                updateStatus(getString(R.string.shizuku_desatualizado))
-                checkRootAccess() // Tentar checar Root como alternativa
-                return // Sai da função aqui se Shizuku não está ok
-            }
-
-            // Shizuku parece estar disponível, verificar permissão
-            when (Shizuku.checkSelfPermission()) {
-                PackageManager.PERMISSION_GRANTED -> {
-                    // Permissão já concedida!
-                    updateStatus(getString(R.string.shizuku_pronto))
-                    enableUiComponents(true) // Habilitar botões e switch
-                }
-                PackageManager.PERMISSION_DENIED -> {
-                    // Permissão negada
-                    if (Shizuku.shouldShowRequestPermissionRationale()) {
-                        // O usuário negou antes, talvez mostrar um diálogo explicando por que precisa
-                        updateStatus(getString(R.string.permissao_shizuku_necessaria)) // Mensagem mais clara
-                        // Poderíamos ter um botão para tentar pedir de novo, mas Shizuku recomenda que o usuário vá ao app Shizuku
-                        enableUiComponents(false) // Manter desabilitado
-                        // Não vamos pedir permissão automaticamente aqui se já foi negada antes.
-                    } else {
-                        // Primeira vez pedindo ou usuário marcou "não perguntar novamente" (ou Shizuku não permite pedir de novo)
-                        updateStatus(getString(R.string.solicitando_permissao_shizuku))
-                        requestShizukuPermission() // Tenta solicitar
-                        enableUiComponents(false) // Manter desabilitado
-                    }
-                }
-                else -> {
-                    // Outro estado inesperado?
-                    updateStatus(getString(R.string.status_permissao_shizuku_desconhecido))
-                    enableUiComponents(false)
-                    checkRootAccess() // Tentar Root como fallback
-                }
-            }
-
-        } catch (e: Exception) { // <--- Adiciona o catch aqui
-            // Captura QUALQUER erro que ocorrer dentro do try
-            Log.e("HzChangerApp", "Erro ao verificar/pedir permissão Shizuku", e) // Loga o erro completo no Logcat
-            updateStatus(getString(R.string.erro_verificar_shizuku, e.message ?: "Erro desconhecido")) // Mostra uma mensagem básica na tela
-            enableUiComponents(false) // Desabilita UI por segurança
-            checkRootAccess() // Tenta verificar Root como fallback mesmo se deu erro no Shizuku
-        }
-    }
-
-// A função requestShizukuPermission e o resto da classe continuam iguais...
-
-    // Verifique se a função checkRootAccess ainda está como placeholder:
     private fun checkRootAccess() {
         Log.d("HzChangerApp", "Verificando acesso root...")
         if (isDeviceRooted()) {
@@ -280,27 +182,6 @@ class MainActivity : AppCompatActivity() {
             updateStatus(getString(R.string.acesso_root_nao_disponivel))
             enableUiComponents(false)
         }
-    }
-
-    private fun requestShizukuPermission() {
-        if (Shizuku.isPreV11() || Shizuku.getVersion() < 10) {
-            updateStatus(getString(R.string.shizuku_nao_disponivel_solicitar))
-            return
-        }
-
-        // Pedir permissão usando o método da API Shizuku
-        // Usando o ActivityResultLauncher (método moderno):
-        // Nota: A API Shizuku pode ter sua própria forma de pedir permissão,
-        // vamos usar a recomendada pela documentação deles se houver.
-        // Por agora, vamos usar o método padrão deles que usa o listener:
-        if (Shizuku.checkSelfPermission() != PackageManager.PERMISSION_GRANTED) {
-            Shizuku.requestPermission(SHIZUKU_PERMISSION_REQUEST_CODE)
-        }
-
-        // Alternativa usando ActivityResultContracts (geralmente para permissões Android padrão)
-        // if (ContextCompat.checkSelfPermission(this, ShizukuApiConstants.PERMISSION) != PackageManager.PERMISSION_GRANTED) {
-        //    requestPermissionLauncher.launch(ShizukuApiConstants.PERMISSION)
-        //}
     }
 
     // Função para atualizar o TextView de status
@@ -495,12 +376,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showInfoDialog() {
-        androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle(getString(R.string.info_dialog_title))
-            .setMessage(getString(R.string.info_dialog_message))
-            .setPositiveButton(getString(R.string.info_dialog_ok)) { dialog, _ ->
-                dialog.dismiss()
-            }
-            .show()
+        // Inflar o layout customizado
+        val dialogView = layoutInflater.inflate(R.layout.custom_info_dialog, null)
+        
+        // Criar o diálogo
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this, R.style.CustomDialogTheme)
+            .setView(dialogView)
+            .setCancelable(true)
+            .create()
+        
+        // Configurar o botão OK
+        val okButton = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.button_ok)
+        okButton.setOnClickListener {
+            dialog.dismiss()
+        }
+        
+        // Mostrar o diálogo
+        dialog.show()
     }
 }
