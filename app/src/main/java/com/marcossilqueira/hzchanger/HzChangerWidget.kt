@@ -23,7 +23,7 @@ class HzChangerWidget : AppWidgetProvider() {
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        Log.d(TAG, "onUpdate: Atualizando widgets")
+        Log.d(TAG, context.getString(R.string.log_widget_updating))
 
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val isFixed = prefs.getBoolean(PREF_IS_FIXED, false)
@@ -40,7 +40,7 @@ class HzChangerWidget : AppWidgetProvider() {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val action = intent.action
 
-        Log.d(TAG, "onReceive: Ação recebida: $action")
+        Log.d(TAG, context.getString(R.string.log_action_received, action))
 
         // Lógica de ações unificada
         when (action) {
@@ -88,10 +88,10 @@ class HzChangerWidget : AppWidgetProvider() {
         views.setOnClickPendingIntent(R.id.widget_button_fix, getPendingIntent(context, ACTION_TOGGLE_FIX))
 
         // Atualiza o texto da frequência atual
-        views.setTextViewText(R.id.widget_text_current_hz, "$currentHz Hz")
+        views.setTextViewText(R.id.widget_text_current_hz, context.getString(R.string.widget_hz_format, currentHz))
 
         // Atualiza o texto do botão de fixar
-        views.setTextViewText(R.id.widget_button_fix, if (isFixed) "Desfixar" else "Fixar")
+        views.setTextViewText(R.id.widget_button_fix, if (isFixed) context.getString(R.string.desfixar) else context.getString(R.string.fixar))
 
         // Atualiza o widget
         appWidgetManager.updateAppWidget(appWidgetId, views)

@@ -29,12 +29,12 @@ class HzChangerService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "onStartCommand: Serviço iniciado")
+        Log.d(TAG, getString(R.string.log_service_started))
 
         // Cria uma notificação para o serviço em primeiro plano
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Hz Changer")
-            .setContentText("Alterando taxa de atualização...")
+            .setContentTitle(getString(R.string.service_notification_title))
+            .setContentText(getString(R.string.service_notification_text))
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
@@ -67,7 +67,7 @@ class HzChangerService : Service() {
     }
 
     private fun setRefreshRate(hz: Int, isFixed: Boolean) {
-        Log.d(TAG, "setRefreshRate: Definindo taxa para $hz Hz, fixado: $isFixed")
+        Log.d(TAG, getString(R.string.log_setting_refresh_rate, hz, isFixed))
 
         val commands = if (isFixed) {
             // Fixar: define min e peak para o mesmo valor
@@ -88,17 +88,17 @@ class HzChangerService : Service() {
                 for (cmd in commands) {
                     val process = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd))
                     process.waitFor()
-                    Log.d(TAG, "Comando executado via root: $cmd")
+                    Log.d(TAG, getString(R.string.log_command_executed_root, cmd))
                 }
             } else if (Shizuku.pingBinder() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) {
                 // Implementação para Shizuku (se disponível)
-                Log.d(TAG, "Shizuku disponível, mas não implementado ainda")
+                Log.d(TAG, getString(R.string.log_shizuku_available_not_implemented))
                 // Aqui você implementaria a lógica para Shizuku
             } else {
-                Log.e(TAG, "Nem root nem Shizuku disponíveis")
+                Log.e(TAG, getString(R.string.log_neither_root_nor_shizuku))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erro ao definir taxa: ${e.message}", e)
+            Log.e(TAG, getString(R.string.log_error_setting_rate, e.message ?: "Erro desconhecido"), e)
         }
     }
 
@@ -128,8 +128,8 @@ class HzChangerService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Hz Changer Service"
-            val descriptionText = "Serviço para alterar a taxa de atualização da tela"
+            val name = getString(R.string.service_channel_name)
+            val descriptionText = getString(R.string.service_channel_description)
             val importance = NotificationManager.IMPORTANCE_LOW
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText

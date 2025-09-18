@@ -1,0 +1,96 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Hz Changer</string>
+    
+    <!-- Main Activity -->
+    <string name="fixar_taxa">Fix Rate</string>
+    <string name="_30_hz">30 Hz</string>
+    <string name="_60_hz">60 Hz</string>
+    <string name="_90_hz">90 Hz</string>
+    <string name="_120_hz">120 Hz</string>
+    <string name="verificando_permiss_es">Checking permissions...</string>
+    <string name="status_60_hz_selecionado">Status: 60 Hz selected</string>
+    <string name="taxa_atual_format">Current rate: %d Hz</string>
+    <string name="taxa_atual_placeholder">Current rate: -- Hz</string>
+    
+    <!-- Status Messages -->
+    <string name="permissao_shizuku_concedida">Shizuku permission granted!</string>
+    <string name="permissao_shizuku_negada">Shizuku permission denied.</string>
+    <string name="permissao_shizuku_concedida_listener">Shizuku permission granted! (Listener)</string>
+    <string name="permissao_shizuku_negada_listener">Shizuku permission denied. (Listener)</string>
+    <string name="shizuku_desatualizado">Shizuku outdated or not found.</string>
+    <string name="shizuku_pronto">Shizuku ready!</string>
+    <string name="permissao_shizuku_necessaria">Shizuku permission required. Grant it in the Shizuku app or reinstall.</string>
+    <string name="solicitando_permissao_shizuku">Requesting Shizuku permission...</string>
+    <string name="status_permissao_shizuku_desconhecido">Unknown Shizuku permission status.</string>
+    <string name="erro_verificar_shizuku">Error checking Shizuku: %s</string>
+    <string name="acesso_root_detectado">Root access detected!</string>
+    <string name="acesso_root_nao_disponivel">Root access NOT available on this device.</string>
+    <string name="shizuku_nao_disponivel_solicitar">Shizuku not available to request permission.</string>
+    
+    <!-- Refresh Rate Messages -->
+    <string name="taxa_definida_format">Refresh rate set to %d Hz%s</string>
+    <string name="taxa_fixa_sufixo"> (fixed)</string>
+    <string name="sem_permissao_alterar_taxa">No permission to change refresh rate.</string>
+    <string name="erro_definir_taxa">Error setting rate: %s</string>
+    
+    <!-- Widget -->
+    <string name="widget_description">A widget to change and fix screen refresh rate.</string>
+    <string name="cycle_refresh_rate">Cycle refresh rate</string>
+    <string name="fixar">Fix</string>
+    <string name="desfixar">Unfix</string>
+    <string name="widget_hz_format">%d Hz</string>
+    
+    <!-- Service -->
+    <string name="service_notification_title">Hz Changer</string>
+    <string name="service_notification_text">Changing refresh rate...</string>
+    <string name="service_channel_name">Hz Changer Service</string>
+    <string name="service_channel_description">Service to change screen refresh rate</string>
+    
+    <!-- Commands -->
+    <string name="command_peak_refresh_rate">settings put system peak_refresh_rate %s</string>
+    <string name="command_min_refresh_rate">settings put system min_refresh_rate %s</string>
+    <string name="command_echo_root">echo root</string>
+    
+    <!-- Root Paths -->
+    <string name="root_path_system_bin">/system/bin/</string>
+    <string name="root_path_system_xbin">/system/xbin/</string>
+    <string name="root_path_sbin">/sbin/</string>
+    <string name="root_path_system_sd_xbin">/system/sd/xbin/</string>
+    <string name="root_path_system_bin_failsafe">/system/bin/failsafe/</string>
+    <string name="root_path_data_local_xbin">/data/local/xbin/</string>
+    <string name="root_path_data_local_bin">/data/local/bin/</string>
+    <string name="root_path_data_local">/data/local/</string>
+    <string name="su_binary">su</string>
+    
+    <!-- Preferences -->
+    <string name="prefs_widget_name">com.marcossilqueira.hzchanger.HzChangerWidget</string>
+    <string name="pref_is_fixed_hz">is_fixed_hz</string>
+    <string name="pref_current_hz">current_hz</string>
+    
+    <!-- Actions -->
+    <string name="action_cycle_hz">ACTION_CYCLE_HZ</string>
+    <string name="action_toggle_fix">ACTION_TOGGLE_FIX</string>
+    
+    <!-- Log Messages -->
+    <string name="log_service_started">onStartCommand: Service started</string>
+    <string name="log_setting_refresh_rate">setRefreshRate: Setting rate to %d Hz, fixed: %b</string>
+    <string name="log_command_executed_root">Command executed via root: %s</string>
+    <string name="log_shizuku_available_not_implemented">Shizuku available, but not implemented yet</string>
+    <string name="log_neither_root_nor_shizuku">Neither root nor Shizuku available</string>
+    <string name="log_error_setting_rate">Error setting rate: %s</string>
+    <string name="log_widget_updating">onUpdate: Updating widgets</string>
+    <string name="log_action_received">onReceive: Action received: %s</string>
+    <string name="log_checking_root_access">Checking root access...</string>
+    <string name="log_error_checking_shizuku_permission">Error checking/requesting Shizuku permission</string>
+    
+    <!-- Quick Settings Tile -->
+    <string name="qs_tile_label" translatable="false">Hz Changer</string>
+    <string name="qs_tile_content_description" translatable="false">Change hz</string>
+    <string name="qs_tile_60hz" translatable="false">60 Hz</string>
+    <string name="qs_tile_60_90hz" translatable="false">60 - 90 Hz</string>
+    <string name="qs_tile_60_120hz" translatable="false">60 - 120 Hz</string>
+    <string name="qs_tile_90hz" translatable="false">90 Hz</string>
+    <string name="qs_tile_90_120hz" translatable="false">90 - 120 Hz</string>
+    <string name="qs_tile_120hz" translatable="false">120 Hz</string>
+</resources>

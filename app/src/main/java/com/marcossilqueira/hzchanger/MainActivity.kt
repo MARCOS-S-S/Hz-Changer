@@ -40,11 +40,11 @@ class MainActivity : AppCompatActivity() {
     private val requestPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
             if (isGranted) {
-                updateStatus("Permissão Shizuku concedida!")
+                updateStatus(getString(R.string.permissao_shizuku_concedida))
                 // Habilitar funcionalidades que dependem do Shizuku
                 enableUiComponents(true)
             } else {
-                updateStatus("Permissão Shizuku negada.")
+                updateStatus(getString(R.string.permissao_shizuku_negada))
                 // Desabilitar funcionalidades ou mostrar aviso
                 enableUiComponents(false) // Ou apenas as que dependem de permissão
             }
@@ -61,10 +61,10 @@ class MainActivity : AppCompatActivity() {
     private val shizukuPermissionListener = Shizuku.OnRequestPermissionResultListener { requestCode, grantResult ->
         if (requestCode == SHIZUKU_PERMISSION_REQUEST_CODE) {
             if (grantResult == PackageManager.PERMISSION_GRANTED) {
-                updateStatus("Permissão Shizuku concedida! (Listener)")
+                updateStatus(getString(R.string.permissao_shizuku_concedida_listener))
                 enableUiComponents(true)
             } else {
-                updateStatus("Permissão Shizuku negada. (Listener)")
+                updateStatus(getString(R.string.permissao_shizuku_negada_listener))
                 enableUiComponents(false)
             }
         }
@@ -77,7 +77,7 @@ class MainActivity : AppCompatActivity() {
             windowManager.defaultDisplay
         }
         val refreshRate = display?.refreshRate ?: 0f
-        currentRefreshRateTextView.text = "Taxa atual: ${refreshRate.toInt()} Hz"
+        currentRefreshRateTextView.text = getString(R.string.taxa_atual_format, refreshRate.toInt())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -168,12 +168,13 @@ class MainActivity : AppCompatActivity() {
                     val process = Runtime.getRuntime().exec(arrayOf("su", "-c", cmd))
                     process.waitFor()
                 }
-                updateStatus("Taxa de atualização definida para $hz Hz" + if (isFixedHz) " (fixa)" else "")
+                val sufixo = if (isFixedHz) getString(R.string.taxa_fixa_sufixo) else ""
+                updateStatus(getString(R.string.taxa_definida_format, hz, sufixo))
             } else {
-                updateStatus("Sem permissão para alterar a taxa de atualização.")
+                updateStatus(getString(R.string.sem_permissao_alterar_taxa))
             }
         } catch (e: Exception) {
-            updateStatus("Erro ao definir taxa: ${e.message}")
+            updateStatus(getString(R.string.erro_definir_taxa, e.message ?: "Erro desconhecido"))
         }
         updateCurrentRefreshRate()
     }
@@ -189,7 +190,7 @@ class MainActivity : AppCompatActivity() {
         try { // <--- Adiciona o try aqui
             // Verificar se o Shizuku está instalado e rodando
             if (Shizuku.isPreV11() || Shizuku.getVersion() < 10) {
-                updateStatus("Shizuku desatualizado ou não encontrado.")
+                updateStatus(getString(R.string.shizuku_desatualizado))
                 checkRootAccess() // Tentar checar Root como alternativa
                 return // Sai da função aqui se Shizuku não está ok
             }
@@ -198,27 +199,27 @@ class MainActivity : AppCompatActivity() {
             when (Shizuku.checkSelfPermission()) {
                 PackageManager.PERMISSION_GRANTED -> {
                     // Permissão já concedida!
-                    updateStatus("Shizuku pronto!")
+                    updateStatus(getString(R.string.shizuku_pronto))
                     enableUiComponents(true) // Habilitar botões e switch
                 }
                 PackageManager.PERMISSION_DENIED -> {
                     // Permissão negada
                     if (Shizuku.shouldShowRequestPermissionRationale()) {
                         // O usuário negou antes, talvez mostrar um diálogo explicando por que precisa
-                        updateStatus("Permissão Shizuku necessária. Conceda no app Shizuku ou reinstale.") // Mensagem mais clara
+                        updateStatus(getString(R.string.permissao_shizuku_necessaria)) // Mensagem mais clara
                         // Poderíamos ter um botão para tentar pedir de novo, mas Shizuku recomenda que o usuário vá ao app Shizuku
                         enableUiComponents(false) // Manter desabilitado
                         // Não vamos pedir permissão automaticamente aqui se já foi negada antes.
                     } else {
                         // Primeira vez pedindo ou usuário marcou "não perguntar novamente" (ou Shizuku não permite pedir de novo)
-                        updateStatus("Solicitando permissão Shizuku...")
+                        updateStatus(getString(R.string.solicitando_permissao_shizuku))
                         requestShizukuPermission() // Tenta solicitar
                         enableUiComponents(false) // Manter desabilitado
                     }
                 }
                 else -> {
                     // Outro estado inesperado?
-                    updateStatus("Status de permissão Shizuku desconhecido.")
+                    updateStatus(getString(R.string.status_permissao_shizuku_desconhecido))
                     enableUiComponents(false)
                     checkRootAccess() // Tentar Root como fallback
                 }
@@ -227,7 +228,7 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) { // <--- Adiciona o catch aqui
             // Captura QUALQUER erro que ocorrer dentro do try
             Log.e("HzChangerApp", "Erro ao verificar/pedir permissão Shizuku", e) // Loga o erro completo no Logcat
-            updateStatus("Erro ao verificar Shizuku: ${e.message}") // Mostra uma mensagem básica na tela
+            updateStatus(getString(R.string.erro_verificar_shizuku, e.message ?: "Erro desconhecido")) // Mostra uma mensagem básica na tela
             enableUiComponents(false) // Desabilita UI por segurança
             checkRootAccess() // Tenta verificar Root como fallback mesmo se deu erro no Shizuku
         }
@@ -239,17 +240,17 @@ class MainActivity : AppCompatActivity() {
     private fun checkRootAccess() {
         Log.d("HzChangerApp", "Verificando acesso root...")
         if (isDeviceRooted()) {
-            updateStatus("Acesso root detectado!")
+            updateStatus(getString(R.string.acesso_root_detectado))
             enableUiComponents(true)
         } else {
-            updateStatus("Acesso root NÃO disponível neste dispositivo.")
+            updateStatus(getString(R.string.acesso_root_nao_disponivel))
             enableUiComponents(false)
         }
     }
 
     private fun requestShizukuPermission() {
         if (Shizuku.isPreV11() || Shizuku.getVersion() < 10) {
-            updateStatus("Shizuku não disponível para solicitar permissão.")
+            updateStatus(getString(R.string.shizuku_nao_disponivel_solicitar))
             return
         }
 
