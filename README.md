@@ -5,7 +5,7 @@ Um aplicativo Android que permite alterar a taxa de atualização (refresh rate)
 ## 📱 Características
 
 - **Interface Moderna**: Botões com estilo outline que se preenchem quando selecionados
-- **Controle Granular**: Defina taxa mínima e máxima independentemente
+- **Controle total**: Defina taxa mínima e máxima independentemente
 - **Widget Rápido**: Controle direto da tela inicial
 - **Quick Settings Tile**: Acesso rápido pelas configurações rápidas
 - **Multilíngue**: Suporte a Português e Inglês
@@ -14,7 +14,7 @@ Um aplicativo Android que permite alterar a taxa de atualização (refresh rate)
 ## ⚙️ Requisitos
 
 - **Android 8.0+** (API 26+)
-- **Permissões Root** (obrigatório)
+- **Permissão Root** (obrigatória)
 - **Dispositivo com suporte a múltiplas taxas de atualização**
 
 ## 🚀 Instalação
@@ -22,7 +22,7 @@ Um aplicativo Android que permite alterar a taxa de atualização (refresh rate)
 1. Baixe o APK da [página de releases](../../releases)
 2. Habilite "Fontes desconhecidas" nas configurações do Android
 3. Instale o APK
-4. Certifique-se de que seu dispositivo está com root ativo
+4. Certifique-se de que a permissão root foi dada para o app
 
 ## 📖 Como Usar
 
