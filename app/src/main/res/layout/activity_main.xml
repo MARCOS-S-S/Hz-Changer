@@ -56,7 +56,9 @@
             android:layout_height="40dp"
             android:layout_marginBottom="6dp"
             android:text="@string/_60_hz"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:background="@drawable/button_selector"
+            android:textColor="@color/text_button_selector" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_min_90hz"
@@ -64,14 +66,18 @@
             android:layout_height="40dp"
             android:layout_marginBottom="6dp"
             android:text="@string/_90_hz"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:background="@drawable/button_selector"
+            android:textColor="@color/text_button_selector" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_min_120hz"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:text="@string/_120_hz"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:background="@drawable/button_selector"
+            android:textColor="@color/text_button_selector" />
 
     </LinearLayout>
 
@@ -95,7 +101,9 @@
             android:layout_height="40dp"
             android:layout_marginBottom="6dp"
             android:text="@string/_60_hz"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:background="@drawable/button_selector"
+            android:textColor="@color/text_button_selector" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_max_90hz"
@@ -103,14 +111,18 @@
             android:layout_height="40dp"
             android:layout_marginBottom="6dp"
             android:text="@string/_90_hz"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:background="@drawable/button_selector"
+            android:textColor="@color/text_button_selector" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/button_max_120hz"
             android:layout_width="match_parent"
             android:layout_height="40dp"
             android:text="@string/_120_hz"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:background="@drawable/button_selector"
+            android:textColor="@color/text_button_selector" />
 
     </LinearLayout>
 
