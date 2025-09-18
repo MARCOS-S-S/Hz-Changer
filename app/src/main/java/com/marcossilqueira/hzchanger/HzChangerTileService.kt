@@ -3,6 +3,8 @@ package com.marcossilqueira.hzchanger
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.service.quicksettings.Tile
 import android.service.quicksettings.TileService
 import android.util.Log
@@ -18,6 +20,9 @@ class HzChangerTileService : TileService() {
         private const val PREF_CURRENT_HZ = "current_hz"
     }
 
+    private val handler = Handler(Looper.getMainLooper())
+
+    @RequiresApi(Build.VERSION_CODES.Q)
     override fun onStartListening() {
         super.onStartListening()
         Log.d(TAG, "onStartListening: Tile começou a escutar")
@@ -29,6 +34,13 @@ class HzChangerTileService : TileService() {
         Log.d(TAG, "onStopListening: Tile parou de escutar")
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        // Limpa todas as mensagens pendentes do Handler
+        handler.removeCallbacksAndMessages(null)
+        Log.d(TAG, "onDestroy: Handler limpo")
+    }
+
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onClick() {
         super.onClick()
@@ -37,13 +49,41 @@ class HzChangerTileService : TileService() {
         // Por enquanto, apenas alterna a taxa de atualização
         // A lógica completa será implementada depois
         cycleRefreshRate()
-        updateTile()
+        
+        // Força a atualização imediata do tile
+        updateTileImmediately()
+        
+        // Garante que a atualização seja executada mesmo se o tile parar de escutar
+        handler.postDelayed({
+            try {
+                updateTileImmediately()
+                Log.d(TAG, "onClick: Atualização de segurança executada")
+            } catch (e: Exception) {
+                Log.e(TAG, "onClick: Erro na atualização de segurança", e)
+            }
+        }, 100) // 100ms de delay para garantir que a UI seja atualizada
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun updateTile() {
         val tile = qsTile ?: return
+        updateTileContent(tile)
+        tile.updateTile()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun updateTileImmediately() {
+        val tile = qsTile ?: return
+        updateTileContent(tile)
+        tile.updateTile()
         
+        // Log para debug
+        val currentHzState = getCurrentHzState()
+        Log.d(TAG, "updateTileImmediately: Estado atualizado para $currentHzState")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.Q)
+    private fun updateTileContent(tile: Tile) {
         val currentRefreshRate = getCurrentRefreshRate()
         val currentHzState = getCurrentHzState()
         
@@ -59,8 +99,6 @@ class HzChangerTileService : TileService() {
         
         // Ícone do tile
         tile.icon = Icon.createWithResource(this, R.drawable.ic_launcher_foreground)
-        
-        tile.updateTile()
     }
 
     private fun cycleRefreshRate() {
